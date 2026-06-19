@@ -44,10 +44,30 @@ def fuse(
     A "non-empty" context field is one that is not None and (for the list
     field) not an empty list.
     """
-    # TODO: For each entry in vector_results, look up its context dict,
-    #       compute the fused score per the rule above, and assemble the
-    #       output dict.
+    fused: list[dict] = []
 
-    # TODO: Sort the resulting list by fused score DESC and return it.
+    for candidate in vector_results:
+        recipe_id = candidate["recipe_id"]
+        context = contexts.get(recipe_id) or {}
 
-    raise NotImplementedError("fuse not implemented")
+        cuisine = context.get("cuisine")
+        author = context.get("author")
+        ingredients = context.get("ingredients")
+
+        boost = STRUCTURAL_BOOST_PER_FIELD * (
+            (1 if cuisine else 0)
+            + (1 if author else 0)
+            + (1 if ingredients else 0)
+        )
+
+        fused.append(
+            {
+                "recipe_id": recipe_id,
+                "name": candidate["name"],
+                "score": candidate["score"] + boost,
+                "context": context,
+            }
+        )
+
+    fused.sort(key=lambda entry: entry["score"], reverse=True)
+    return fused
