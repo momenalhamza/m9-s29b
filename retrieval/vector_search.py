@@ -27,10 +27,22 @@ def vector_candidates(
         by Neo4j); higher = more similar
     Length of the returned list is at most k. Results are ordered by score DESC.
     """
-    # TODO: Embed the query string into a 384-dim vector using embed_text(embedder, query).
+    qvec = embed_text(embedder, query)
 
-    # TODO: Use Neo4j's native vector index to retrieve the top-k similar
-    #       :Recipe nodes for that vector, returning recipe_id, name, and
-    #       similarity score for each.
+    cypher = """
+    CALL db.index.vector.queryNodes('recipe_descriptions', $k, $vector)
+    YIELD node, score
+    RETURN node.id AS recipe_id, node.name AS name, score
+    ORDER BY score DESC
+    """
 
-    raise NotImplementedError("vector_candidates not implemented")
+    with driver.session() as session:
+        result = session.run(cypher, k=k, vector=qvec)
+        return [
+            {
+                "recipe_id": record["recipe_id"],
+                "name": record["name"],
+                "score": record["score"],
+            }
+            for record in result
+        ]

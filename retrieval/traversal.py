@@ -19,11 +19,28 @@ def expand_context(driver, recipe_id: str) -> dict:
       - "ingredients" (list[str]): the names of all linked :Ingredient nodes
         (sorted alphabetically for deterministic ordering)
     """
-    # TODO: Write a single Cypher query that starts from the :Recipe with
-    #       the given id and gathers, via OPTIONAL MATCH, the linked
-    #       :Cuisine name, :Author name, and the collected :Ingredient names.
+    cypher = """
+    MATCH (r:Recipe {id: $id})
+    OPTIONAL MATCH (r)-[:OF_CUISINE]->(c:Cuisine)
+    OPTIONAL MATCH (r)-[:BY_AUTHOR]->(a:Author)
+    OPTIONAL MATCH (r)-[:USES_INGREDIENT]->(i:Ingredient)
+    RETURN c.name AS cuisine,
+           a.name AS author,
+           collect(DISTINCT i.name) AS ingredients
+    """
 
-    # TODO: Return the result as the documented dict shape (alphabetize
-    #       the ingredient list so output is deterministic).
+    with driver.session() as session:
+        record = session.run(cypher, id=recipe_id).single()
 
-    raise NotImplementedError("expand_context not implemented")
+    if record is None:
+        return {"cuisine": None, "author": None, "ingredients": []}
+
+    # collect() of an absent OPTIONAL MATCH yields [] (and may include None);
+    # filter out None then sort for deterministic output.
+    ingredients = sorted(name for name in record["ingredients"] if name is not None)
+
+    return {
+        "cuisine": record["cuisine"],
+        "author": record["author"],
+        "ingredients": ingredients,
+    }

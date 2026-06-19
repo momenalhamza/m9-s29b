@@ -1,0 +1,21 @@
+# Python virtual environment
+.venv/
+venv/
+
+# Byte-compiled / caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Environment / secrets
+.env
+
+# HuggingFace model cache (if ever placed locally)
+.cache/
+
+# OS / editor cruft
+.DS_Store
+*.swp
+.idea/
+.vscode/
